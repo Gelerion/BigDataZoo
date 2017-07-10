@@ -1,0 +1,26 @@
+ext {
+    versions = [
+            spark: '2.1.1',
+            scala_libs: "2.11",
+            scala: "2.11.8",
+            kafka: "0.11.0.0",
+            guava: "22.0",
+            avro: "1.8.2",
+    ]
+
+    libraries = [
+            sparkCore: "org.apache.spark:spark-core_$versions.scala_libs:$versions.spark",
+            sparkSql: "org.apache.spark:spark-sql_$versions.scala_libs:$versions.spark",
+            sparkStreaming: "org.apache.spark:spark-streaming_$versions.scala_libs:$versions.spark",
+            sparkGraphX: "org.apache.spark:spark-graphx_$versions.scala_libs:$versions.spark",
+            sparkMlLib: "org.apache.spark:spark-mllib_$versions.scala_libs:$versions.spark",
+            scala: [
+                    "org.scala-lang:scala-library:$versions.scala",
+                    "org.scala-lang:scala-reflect:$versions.scala",
+                    "org.scala-lang:scala-compiler:$versions.scala"
+            ],
+            kafka: "org.apache.kafka:kafka_$versions.scala_libs:$versions.kafka",
+            guava: "com.google.guava:guava:$versions.guava",
+            avro: "org.apache.avro:avro:$versions.avro"
+    ]
+}

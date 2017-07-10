@@ -1,0 +1,10 @@
+apply plugin: 'scala'
+
+dependencies {
+    compile libraries.scala
+
+    compile libraries.sparkCore
+    compile libraries.sparkSql
+    compile libraries.sparkMlLib
+    compile libraries.sparkStreaming
+}

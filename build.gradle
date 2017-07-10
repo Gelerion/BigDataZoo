@@ -1,0 +1,27 @@
+//apply plugin: 'scala'
+apply plugin: 'java'
+apply plugin: "idea"
+
+allprojects {
+    repositories {
+        mavenLocal()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url 'https://jitpack.io' }
+        mavenCentral()
+        jcenter()
+    }
+}
+
+subprojects {
+
+    apply from: "${rootDir}/gradle/dependencies.gradle"
+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+
+    group = 'com.gelerion.spark.template'
+}
+
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0'
+}
