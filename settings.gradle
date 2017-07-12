@@ -3,7 +3,5 @@ rootProject.name = 'BigDataZoo'
 include 'realtime'
 include 'uber-predictions'
 
-include 'kafka'
-include 'kafka:kafka-avro'
-include 'kafka:kafka-native'
-
+include 'kafka-avro'
+include 'kafka-native'

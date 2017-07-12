@@ -1,0 +1,28 @@
+import com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask
+
+plugins {
+    id "com.commercehub.gradle.plugin.avro" version "0.9.0"
+}
+
+apply plugin: "com.commercehub.gradle.plugin.avro"
+apply plugin: 'scala'
+
+dependencies {
+    compile libraries.scala
+    compile libraries.kafka
+    compile libraries.guava
+
+    compile libraries.avro
+}
+
+avro {
+    outputCharacterEncoding = "UTF-8"
+}
+
+// If the defaults used by the plugin don't work
+//task generateAvro(type: GenerateAvroJavaTask) {
+//    source("src/avro")
+//    outputDir = file("dest/avro")
+//}
+//
+//compileJava.source(generateAvro.outputs)
