@@ -1,8 +1,10 @@
 //apply plugin: 'scala'
-apply plugin: 'java'
-apply plugin: "idea"
 
 allprojects {
+
+    apply plugin: 'java'
+    apply plugin: "idea"
+
     repositories {
         mavenLocal()
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
