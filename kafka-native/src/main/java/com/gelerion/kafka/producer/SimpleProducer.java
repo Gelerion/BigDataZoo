@@ -3,15 +3,19 @@ package com.gelerion.kafka.producer;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+
+import java.util.concurrent.Future;
 
 public class SimpleProducer {
 
     public static void main(String[] args) {
         ImmutableMap<String, Object> kafkaProps = ImmutableMap.<String, Object>builder()
                 .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092") //List of host:port pairs of Kafka brokers
-                .put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-                .put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+                .put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+                .put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
                 .build();
 
         KafkaProducer<String, String> producer = new KafkaProducer<>(kafkaProps);
@@ -22,11 +26,13 @@ public class SimpleProducer {
         // - Asynchronous Send
 
         ProducerRecord<String, String> record =
-                new ProducerRecord<>("CustomerCountry", "Precision Products", "France");
+                new ProducerRecord<>("customerCountries", "Precision Products", "France");
 
         try {
             //the message will be placed in a buffer and will be sent to the broker in a separate thread
-            producer.send(record);
+            Future<RecordMetadata> future = producer.send(record);
+            RecordMetadata metadata = future.get();
+            System.out.println(metadata);
         }
         catch (Exception e) {
             e.printStackTrace();

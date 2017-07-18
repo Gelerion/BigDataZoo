@@ -6,6 +6,7 @@ ext {
             kafka: "0.11.0.0",
             guava: "22.0",
             avro: "1.8.1",
+            json: "20170516",
     ]
 
     libraries = [
@@ -21,6 +22,7 @@ ext {
             ],
             kafka: "org.apache.kafka:kafka_$versions.scala_libs:$versions.kafka",
             guava: "com.google.guava:guava:$versions.guava",
-            avro: "org.apache.avro:avro:$versions.avro"
+            avro: "org.apache.avro:avro:$versions.avro",
+            json: "org.json:json:$versions.json",
     ]
 }

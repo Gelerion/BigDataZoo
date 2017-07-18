@@ -7,22 +7,32 @@ plugins {
 apply plugin: "com.commercehub.gradle.plugin.avro"
 apply plugin: 'scala'
 
+repositories {
+    maven {
+        url "http://packages.confluent.io/maven/"
+    }
+}
+
 dependencies {
     compile libraries.scala
     compile libraries.kafka
     compile libraries.guava
 
     compile libraries.avro
+    compile 'io.confluent:kafka-avro-serializer:1.0'
 }
 
 avro {
     outputCharacterEncoding = "UTF-8"
+    createSetters = false
 }
 
 // If the defaults used by the plugin don't work
 //task generateAvro(type: GenerateAvroJavaTask) {
 //    source("src/avro")
-//    outputDir = file("dest/avro")
+//    outputDir(file("dest/avro"))
+//    println(outputDir)
+//    //outputDir = file("dest/avro")
 //}
 //
-//compileJava.source(generateAvro.outputs)
+//compileJava.source(generateAvro.outputDir)

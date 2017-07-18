@@ -3,5 +3,7 @@ apply plugin: 'scala'
 dependencies {
     compile libraries.scala
     compile libraries.kafka
+
     compile libraries.guava
+    compile libraries.json
 }
