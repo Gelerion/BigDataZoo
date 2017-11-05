@@ -7,6 +7,7 @@ ext {
             guava: "22.0",
             avro: "1.8.1",
             json: "20170516",
+            flink: "1.3.2",
     ]
 
     libraries = [
@@ -24,5 +25,8 @@ ext {
             guava: "com.google.guava:guava:$versions.guava",
             avro: "org.apache.avro:avro:$versions.avro",
             json: "org.json:json:$versions.json",
+            flink: "org.apache.flink:flink-core:$versions.flink",
+            flinkJava: "org.apache.flink:flink-java:$versions.flink",
+            flinkStreaming: "org.apache.flink:flink-streaming-java_$versions.scala_libs:$versions.flink",
     ]
 }

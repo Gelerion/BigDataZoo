@@ -1,0 +1,8 @@
+group 'com.gelerion.flink.streaming'
+
+
+dependencies {
+    compile libraries.flink
+    compile libraries.flinkJava
+    compile libraries.flinkStreaming
+}

@@ -5,3 +5,6 @@ include 'uber-predictions'
 
 include 'kafka-avro'
 include 'kafka-native'
+
+include 'flink-streaming'
+
