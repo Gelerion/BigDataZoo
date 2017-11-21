@@ -1,8 +1,12 @@
 group 'com.gelerion.flink.streaming'
 
+apply plugin: 'scala'
 
 dependencies {
     compile libraries.flink
     compile libraries.flinkJava
-    compile libraries.flinkStreaming
+    compile libraries.flinkStreamingJava
+
+    compile libraries.flinkScala
+    compile libraries.flinkStreamingScala
 }
