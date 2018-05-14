@@ -1,0 +1,122 @@
+Disk Capacity
+ Capacity is the other side of the storage discussion. The amount of disk capacity that is needed is determined by how
+ many messages need to be retained at any time. If the broker is expected to receive 1 TB of traffic each day, with 7
+ days of retention, then the broker will need a minimum of 7 TB of useable storage for log segments. You should also
+ factor in at least 10% overhead for other files, in addition to any buffer that you wish to maintain for fluctuations
+ in traffic or growth over time.
+
+ Storage capacity is one of the factors to consider when sizing a Kafka cluster and determining when to expand it. The
+ total traffic for a cluster can be balanced across it by having multiple partitions per topic, which will allow
+ additional brokers to augment the available capacity if the density on a single broker will not suffice. The decision
+ on how much disk capacity is needed will also be informed by the replication strategy chosen for the cluster
+
+Memory
+ The normal mode of operation for a Kafka consumer is reading from the end of the partitions, where the consumer is caught
+ up and lagging behind the producers very little, if at all. In this situation, the messages the consumer is reading are
+ optimally stored in the system’s page cache, resulting in faster reads than if the broker has to reread the messages
+ from disk. Therefore, having more memory available to the system for page cache will improve the performance of consumer clients.
+
+ Kafka itself does not need much heap memory configured for the Java Virtual Machine (JVM). Even a broker that is
+ handling X messages per second and a data rate of X megabits per second can run with a 5 GB heap. The rest of the system
+ memory will be used by the page cache and will benefit Kafka by allowing the system to cache log segments in use. This is
+ the main reason it is not recommended to have Kafka collocated on a system with any other significant application, as
+ they will have to share the use of the page cache. This will decrease the consumer performance for Kafka.
+
+CPU
+ Processing power is not as important as disk and memory, but it will affect overall performance of the broker to some
+ extent. Ideally, clients should compress messages to optimize network and disk usage. The Kafka broker must decompress
+ all message batches, however, in order to validate the checksum of the individual messages and assign offsets. It then
+ needs to recompress the message batch in order to store it on disk. This is where the majority of Kafka’s requirement
+ for processing power comes from. This should not be the primary factor in selecting hardware, however.
+
+Kafka in the Cloud
+ A good place to start is with the amount of data retention required, followed by the performance needed from the producers.
+ If very low latency is necessary, I/O optimized instances that have local SSD storage might be required. Otherwise, ephemeral
+ storage (such as the AWS Elastic Block Store) might be sufficient.
+
+ In real terms, this will mean that for AWS either the m4 or r3 instance types are a common choice. The m4 instance will
+ allow for greater retention periods, but the throughput to the disk will be less because it is on elastic block storage.
+ The r3 instance will have much better throughput with local SSD drives, but those drives will limit the amount of data
+ that can be retained. For the best of both worlds, it is necessary to move up to either the i2 or d2 instance types,
+ which are significantly more expensive.
+
+
+OS Tuning
+While most Linux distributions have an out-of-the-box configuration for the kernel-tuning parameters that will work fairly
+well for most applications, there are a few changes that can be made for a Kafka broker that will improve performance.
+These primarily revolve around the virtual memory and networking subsystems, as well as specific concerns for the disk mount
+point that is used for storing log segments. These parameters are typically configured in the /etc/sysctl.conf file, but you
+should refer to your Linux distribution’s documentation for specific details regarding how to adjust the kernel configuration.
+
+VIRTUAL MEMORY
+As with most applications—specifically ones where throughput is a concern—it is best to avoid swapping at (almost) all costs.
+The cost incurred by having pages of memory swapped to disk will show up as a noticeable impact on all aspects of performance
+in Kafka. In addition, Kafka makes heavy use of the system page cache, and if the VM system is swapping to disk, there is
+not enough memory being allocated to page cache.
+One way to avoid swapping is just to not configure any swap space at all. Having swap is not a requirement, but it does
+provide a safety net if something catastrophic happens on the system. Having swap can prevent the OS from abruptly killing
+a process due to an out-of-memory condition. For this reason, the recommendation is to set the vm.swappiness parameter to a
+very low value, such as 1. The parameter is a percentage of how likely the VM subsystem is to use swap space rather than
+dropping pages from the page cache. It is preferable to reduce the size of the page cache rather than swap.
+
+There is also a benefit to adjusting how the kernel handles dirty pages that must be flushed to disk. Kafka relies on disk
+I/O performance to provide good response times to producers. This is also the reason that the log segments are usually put
+on a fast disk, whether that is an individual disk with a fast response time (e.g., SSD) or a disk subsystem with
+significant NVRAM for caching (e.g., RAID). The result is that the number of dirty pages that are allowed, before the
+flush background process starts writing them to disk, can be reduced. This is accomplished by setting the =vm.dirty_background_ratio
+value lower than the default of 10. The value is a percentage of the total amount of system memory, and setting this value to 5
+is appropriate in many situations. This setting should not be set to zero, however, as that would cause the kernel to
+continually flush pages, which would then eliminate the ability of the kernel to buffer disk writes against temporary
+spikes in the underlying device performance.
+
+The total number of dirty pages that are allowed before the kernel forces synchronous operations to flush them to disk
+can also be increased by changing the value of vm.dirty_ratio, increasing it to above the default of 20
+(also a percentage of total system memory). There is a wide range of possible values for this setting, but between 60
+and 80 is a reasonable number. This setting does introduce a small amount of risk, both in regards to the amount of
+unflushed disk activity as well as the potential for long I/O pauses if synchronous flushes are forced. If a higher
+setting for vm.dirty_ratio is chosen, it is highly recommended that replication be used in the Kafka cluster to guard
+against system failures.
+The current number of dirty pages can be determined by checking the /proc/vmstat file:
+    # cat /proc/vmstat | egrep "dirty|writeback"
+
+DISK
+Outside of selecting the disk device hardware, as well as the configuration of RAID if it is used, the choice of filesystem
+used for this disk can have the next largest impact on performance. There are many different filesystems available, but the
+most common choices for local filesystems are either EXT4 (fourth extended file system) or Extents File System (XFS).
+Recently, XFS has become the default filesystem for many Linux distributions, and this is for good reason—it outperforms
+EXT4 for most workloads with minimal tuning required. EXT4 can perform well, but it requires using tuning parameters that
+are considered less safe. This includes setting the commit interval to a longer time than the default of five to force
+less frequent flushes.
+
+Regardless of which filesystem is chosen for the mount that holds the log segments, it is advisable to set the noatime
+mount option for the mount point. File metadata contains three timestamps: creation time (ctime), last modified
+time (mtime), and last access time (atime). By default, the atime is updated every time a file is read. This generates a
+large number of disk writes. The atime attribute is generally considered to be of little use, unless an application needs
+to know if a file has been accessed since it was last modified (in which case the realtime option can be used). The atime
+is not used by Kafka at all, so disabling it is safe to do. Setting noatime on the mount will prevent these timestamp
+updates from happening, but will not affect the proper handling of the ctime and mtime attributes.
+
+NETWORKING
+Adjusting the default tuning of the Linux networking stack is common for any application that generates a high amount of
+network traffic, as the kernel is not tuned by default for large, high-speed data transfers. In fact, the recommended
+changes for Kafka are the same as those suggested for most web servers and other networking applications. The first
+adjustment is to change the default and maximum amount of memory allocated for the send and receive buffers for each socket.
+This will significantly increase performance for large transfers. The relevant parameters for the send and receive buffer
+default size per socket are net.core.wmem_default and net.core.rmem_default, and a reasonable setting for these parameters
+is 131072, or 128 KiB. The parameters for the send and receive buffer maximum sizes are net.core.wmem_max and net.core.rmem_max,
+and a reasonable setting is 2097152, or 2 MiB. Keep in mind that the maximum size does not indicate that every socket
+will have this much buffer space allocated; it only allows up to that much if needed.
+
+In addition to the socket settings, the send and receive buffer sizes for TCP sockets must be set separately using the
+net.ipv4.tcp_wmem and net.ipv4.tcp_rmem parameters. These are set using three space-separated integers that specify the
+minimum, default, and maximum sizes, respectively. The maximum size cannot be larger than the values specified for all
+sockets using net.core.wmem_max and net.core.rmem_max. An example setting for each of these parameters is “4096 65536 2048000,”
+ which is a 4 KiB minimum, 64 KiB default, and 2 MiB maximum buffer. Based on the actual workload of your Kafka brokers,
+ you may want to increase the maximum sizes to allow for greater buffering of the network connections.
+
+There are several other network tuning parameters that are useful to set. Enabling TCP window scaling by setting
+net.ipv4.tcp_window_scaling to 1 will allow clients to transfer data more efficiently, and allow that data to be buffered
+on the broker side. Increasing the value of net.ipv4.tcp_max_syn_backlog above the default of 1024 will allow a greater
+number of simultaneous connections to be accepted. Increasing the value of net.core.netdev_max_backlog to greater than
+the default of 1000 can assist with bursts of network traffic, specifically when using multigigabit network connection
+speeds, by allowing more packets to be queued for the kernel to process them.
