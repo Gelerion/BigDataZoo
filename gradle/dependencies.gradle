@@ -4,7 +4,7 @@ ext {
             spark: '2.3.0',
             scala_libs: "2.11",
             scala: "2.11.8",
-            kafka: "0.11.0.0",
+            kafka: "1.1.0",
             guava: "22.0",
             avro: "1.8.1",
             json: "20170516",

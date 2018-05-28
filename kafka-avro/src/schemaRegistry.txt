@@ -1,0 +1,25 @@
+Using Avro Records with Kafka
+Unlike Avro files, where storing the entire schema in the data file is associated with a fairly reasonable overhead,
+storing the entire schema in each record will usually more than double the record size. However, Avro still requires
+the entire schema to be present when reading the record, so we need to locate the schema elsewhere. To achieve this,
+we follow a common architecture pattern and use a Schema Registry. The Schema Registry is not part of Apache Kafka but
+there are several open source options to choose from. We’ll use the Confluent Schema Registry for this example.
+You can find the Schema Registry code on GitHub, or you can install it as part of the Confluent Platform. If you
+decide to use the Schema Registry, then we recommend checking the documentation.
+
+The idea is to store all the schemas used to write data to Kafka in the registry. Then we simply store the identifier
+for the schema in the record we produce to Kafka. The consumers can then use the identifier to pull the record out of
+the schema registry and deserialize the data. The key is that all this work—storing the schema in the registry and
+pulling it up when required—is done in the serializers and deserializers. The code that produces data to Kafka
+simply uses the Avro serializer just like it would any other serializer
+
+
+----------------                          ----------------               -------------------
+| Producer     |---Msg with schema Id---> | Kafka Broker | ------------> | Consumer        |
+| (Serializer) |                          ----------------               | (Deserializer)  |
+----------------                                                         -------------------
+     |                                                                           ^
+     |                                                                           |
+     |                                  -------------------                      |
+     |-----Current version of schema--> | Schema Registry | ----------------------
+                                        -------------------

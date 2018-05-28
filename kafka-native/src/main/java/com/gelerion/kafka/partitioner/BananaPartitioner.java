@@ -9,6 +9,15 @@ import org.apache.kafka.common.utils.Utils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Kafka does not limit you to just hash partitions, and sometimes there are good reasons to partition data differently.
+ * For example, suppose that you are a B2B vendor and your biggest customer is a company that manufactures handheld
+ * devices called Bananas. Suppose that you do so much business with customer “Banana” that over 10% of your daily
+ * transactions are with this customer. If you use default hash partitioning, the Banana records will get allocated to
+ * the same partition as other accounts, resulting in one partition being about twice as large as the rest.
+ * This can cause servers to run out of space, processing to slow down, etc. What we really want is to give Banana its
+ * own partition and then use hash partitioning to map the rest of the accounts to partitions.
+ */
 public class BananaPartitioner implements Partitioner {
 
     //we really should have passed the special customer name through configure instead of hard-coding it in partition

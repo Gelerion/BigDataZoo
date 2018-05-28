@@ -7,3 +7,9 @@ so hash values will not change when Java is upgraded), and use the result to map
 
 The mapping of keys to partitions is consistent only as long as
 the number of partitions in a topic does not change.
+
+So as long as the number of partitions is constant, you can be sure that, for example, records regarding user 045189
+will always get written to partition 34. This allows all kinds of optimization when reading data from partitions.
+However, the moment you add new partitions to the topic, this is no longer guaranteed—the old records will stay in
+partition 34 while new records will get written to a different partition. When partitioning keys is important, the
+easiest solution is to create topics with sufficient partitions and never add partitions.

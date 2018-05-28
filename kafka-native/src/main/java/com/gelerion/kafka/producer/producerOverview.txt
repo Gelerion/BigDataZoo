@@ -1,0 +1,62 @@
+There are many reasons an application might need to write messages to Kafka: recording user activities for auditing or
+analysis, recording metrics, storing log messages, recording information from smart appliances, communicating asynchronously
+with other applications, buffering information before writing to a database, and much more.
+
+Those diverse use cases also imply diverse requirements: is every message critical, or can we tolerate loss of messages?
+Are we OK with accidentally duplicating messages? Are there any strict latency or throughput requirements we need to support?
+
+In the credit card transaction processing example we introduced earlier, we can see that it is critical to never lose a
+single message nor duplicate any messages. Latency should be low but latencies up to 500ms can be tolerated, and throughput
+should be very high—we expect to process up to a million messages a second.
+
+A different use case might be to store click information from a website. In that case, some message loss or a few
+duplicates can be tolerated; latency can be high as long as there is no impact on the user experience. In other words,
+we don’t mind if it takes a few seconds for the message to arrive at Kafka, as long as the next page loads immediately
+after the user clicked on a link. Throughput will depend on the level of activity we anticipate on our website.
+
+While the producer APIs are very simple, there is a bit more that goes on under the hood of the producer when we send data.
+
+          ----------------------->ProducerRecord[Topic, (Partition)?, (Key)?, Value]
+          |       | If can't           |
+On success|       | throw exception    |
+return    |       |                  send()
+Metadata  |       |                    |
+          |       |                  Serializer
+          |       |                    |
+          |       |                  Partitioner
+          |       |                 |         |
+          |       |             Topic A       Topic B
+          |       |            Partition 0   Partition 1
+          |    Retry?--Yes---->|Batch 0  |   |Batch 0  |
+          |       |            |Batch 1  |   |Batch 1  |
+          |       |            |Batch 2  |   |Batch 2  |
+          |       |Yes             |             |
+          ------Fail?              ---------------
+                  |                       |
+                  |                  Kafka Broker
+                  |                       |
+                  |-----------------------|
+
+
+We start producing messages to Kafka by creating a ProducerRecord, which must include the topic we want to send the
+record to and a value. Optionally, we can also specify a key and/or a partition. Once we send the ProducerRecord, the
+first thing the producer will do is serialize the key and value objects to ByteArrays so they can be sent over the network.
+
+Next, the data is sent to a partitioner. If we specified a partition in the ProducerRecord, the partitioner doesn’t do
+anything and simply returns the partition we specified. If we didn’t, the partitioner will choose a partition for us,
+usually based on the ProducerRecord key. Once a partition is selected, the producer knows which topic and partition the
+record will go to. It then adds the record to a batch of records that will also be sent to the same topic and partition.
+A separate thread is responsible for sending those batches of records to the appropriate Kafka brokers.
+
+When the broker receives the messages, it sends back a response. If the messages were successfully written to Kafka, it
+will return a RecordMetadata object with the topic, partition, and the offset of the record within the partition. If the
+broker failed to write the messages, it will return an error. When the producer receives an error, it may retry sending
+the message a few more times before giving up and returning an error
+
+KafkaProducer has two types of errors. Retriable errors are those that can be resolved by sending the
+message again. For example, a connection error can be resolved because the connection may get reestablished.
+A “no leader” error can be resolved when a new leader is elected for the partition. KafkaProducer can be
+configured to retry those errors automatically, so the application code will get retriable exceptions only
+when the number of retries was exhausted and the error was not resolved. Some errors will not be resolved
+by retrying. For example, “message size too large.” In those cases, KafkaProducer will not attempt a retry
+and will return the exception immediately.
