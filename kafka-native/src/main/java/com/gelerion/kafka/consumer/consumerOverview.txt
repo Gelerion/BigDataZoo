@@ -1,0 +1,82 @@
+Consumers and Consumer Groups
+Suppose you have an application that needs to read messages from a Kafka topic, run some validations against them, and
+write the results to another data store. In this case your application will create a consumer object, subscribe to the
+appropriate topic, and start receiving messages, validating them and writing the results. This may work well for a while,
+but what if the rate at which producers write messages to the topic exceeds the rate at which your application can validate
+them? If you are limited to a single consumer reading and processing the data, your application may fall farther and
+farther behind, unable to keep up with the rate of incoming messages. Obviously there is a need to scale consumption
+from topics. Just like multiple producers can write to the same topic, we need to allow multiple consumers to read from
+the same topic, splitting the data between them.
+
+Kafka consumers are typically part of a consumer group. When multiple consumers are subscribed to a topic and belong to
+the same consumer group, each consumer in the group will receive messages from a different subset of the partitions in the topic.
+
+
+Let’s take topic T1 with four partitions. Now suppose we created a new consumer, C1, which is the only consumer in
+group G1, and use it to subscribe to topic T1. Consumer C1 will get all messages from all four t1 partitions.
+-----------------       --------------------
+| Topic T1      |       | Consumer Group 1 |
+| [Partition 0] |------>| [Consumer 1]     |
+| [Partition 1] |///    |                  |
+| [Partition 2] |//     |                  |
+| [Partition 3] |/      |                  |
+-----------------       --------------------
+
+If we add another consumer, C2, to group G1, each consumer will only get messages from two partitions.
+Perhaps messages from partition 0 and 2 go to C1 and messages from partitions 1 and 3 go to consumer C2
+-----------------       --------------------
+| Topic T1      |       | Consumer Group 1 |
+| [Partition 0] |------>| [Consumer 1]     |
+| [Partition 1] |--/--->| [Consumer 2]     |
+| [Partition 2] |//     |                  |
+| [Partition 3] |/      |                  |
+-----------------       --------------------
+
+If G1 has four consumers, then each will read messages from a single partition
+-----------------       --------------------
+| Topic T1      |       | Consumer Group 1 |
+| [Partition 0] |------>| [Consumer 1]     |
+| [Partition 1] |------>| [Consumer 2]     |
+| [Partition 2] |------>| [Consumer 3]     |
+| [Partition 3] |------>| [Consumer 4]     |
+-----------------       --------------------
+
+!! If we add more consumers to a single group with a single topic than we have partitions, some of the consumers will be idle and get no messages at all
+-----------------       --------------------
+| Topic T1      |       | Consumer Group 1 |
+| [Partition 0] |------>| [Consumer 1]     |
+| [Partition 1] |------>| [Consumer 2]     |
+| [Partition 2] |------>| [Consumer 3]     |
+| [Partition 3] |------>| [Consumer 4]     |
+-----------------       | [Consumer 5]     |
+                        --------------------
+
+The main way we scale data consumption from a Kafka topic is by adding more consumers to a consumer group. It is common
+for Kafka consumers to do high-latency operations such as write to a database or a time-consuming computation on the data.
+In these cases, a single consumer can’t possibly keep up with the rate data flows into a topic, and adding more consumers
+that share the load by having each consumer own just a subset of the partitions and messages is our main method of scaling.
+This is a good reason to create topics with a large number of partitions—it allows adding more consumers when the load
+increases. Keep in mind that there is no point in adding more consumers than you have partitions in a topic—some of
+the consumers will just be idle.
+
+
+In addition to adding consumers in order to scale a single application, it is very common to have multiple applications
+that need to read data from the same topic. In fact, one of the main design goals in Kafka was to make the data produced
+to Kafka topics available for many use cases throughout the organization. In those cases, we want each application to
+get all of the messages, rather than just a subset. To make sure an application gets all the messages in a topic, ensure
+the application has its own consumer group. Unlike many traditional messaging systems, Kafka scales to a large number of
+consumers and consumer groups without reducing performance.
+
+-----------------       --------------------
+| Topic T1      |       | Consumer Group 1 |
+| [Partition 0] |\----->| [Consumer 1]     |
+| [Partition 1] |\\---->| [Consumer 2]     |
+| [Partition 2] |\\\--->| [Consumer 3]     |
+| [Partition 3] |\\\\-->| [Consumer 4]     |
+----------------- \\\\  --------------------
+                   \\\\
+                   |||| --------------------
+                   |||| | Consumer Group 2 |
+                   ||-->| [Consumer 1]     |
+                   ---->| [Consumer 2]     |
+                        --------------------

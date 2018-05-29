@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 //One consumer per thread is the rule
+//Multithreaded example: https://www.confluent.io/blog/tutorial-getting-started-with-the-new-apache-kafka-0-9-consumer-client/
 public class SimpleConsumer {
 
     //group.id - it specifies the Consumer Group the KafkaConsumer instance belongs to. While it is possible to
@@ -34,6 +35,8 @@ public class SimpleConsumer {
 
         //the poll loop
         try {
+            //enable.auto.commit is set to true (which is the default) the consumer automatically triggers offset commits
+            //periodically according to the interval configured with “auto.commit.interval.ms.”
             while (true) {
                 //consumers must keep polling Kafka or they will be considered dead and the partitions
                 //they are consuming will be handed to another consumer in the group to continue consuming

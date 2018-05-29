@@ -71,6 +71,11 @@ public class CommitOffsetAfterPoolConsumer {
 
                     //consumer.commitAsync(); async the good and the bad...
 
+                    //The drawback is that while commitSync() will retry the commit until it either succeeds or encounters
+                    //a nonretriable failure, commitAsync() will not retry. The reason it does not retry is that by the
+                    //time commitAsync() receives a response from the server, there may have been a later commit that
+                    //was already successful.
+
 /*                    It is common to use the callback to log commit errors or to count them in a metric, but if you want
                       to use the callback for retries, you need to be aware of the problem with commit order.
                       consumer.commitAsync(new OffsetCommitCallback() {
@@ -86,6 +91,13 @@ public class CommitOffsetAfterPoolConsumer {
             }
         }
         finally {
+            //Combining Synchronous and Asynchronous Commits
+            //common pattern is to combine commitAsync() with commitSync() just before shutdown
+//            try {
+//                consumer.commitSync();
+//            } finally {
+//                consumer.close();
+//            }
             consumer.close();
         }
     }
