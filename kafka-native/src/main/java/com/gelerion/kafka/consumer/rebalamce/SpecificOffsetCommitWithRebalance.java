@@ -23,6 +23,15 @@ public class SpecificOffsetCommitWithRebalance {
 
     private class HandleRebalance implements ConsumerRebalanceListener {
 
+        /**
+         *
+         However, when we are about to lose a partition due to rebalancing, we need to commit offsets. Note that we are
+         committing the latest offsets we’ve processed, not the latest offsets in the batch we are still processing.
+         This is because a partition could get revoked while we are still in the middle of a batch. We are committing
+         offsets for all partitions, not just the partitions we are about to lose—because the offsets are for events
+         that were already processed, there is no harm in that. And we are using commitSync() to make sure the offsets
+         are committed before the rebalance proceeds.
+         */
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
             System.out.println("Lost partitions in rebalance. Committing current offsets:" + currentOffsets);

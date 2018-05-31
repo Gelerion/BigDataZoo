@@ -14,6 +14,14 @@ import org.json.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
+/**
+ * How does a consumer commit an offset? It produces a message to Kafka, to a special __consumer_offsets topic,
+ * with the committed offset for each partition. As long as all your consumers are up, running, and churning away,
+ * this will have no impact. However, if a consumer crashes or a new consumer joins the consumer group, this will
+ * trigger a rebalance. After a rebalance, each consumer may be assigned a new set of partitions than the one it
+ * processed before. In order to know where to pick up the work, the consumer will read the latest committed offset
+ * of each partition and continue from there.
+ */
 //allows consumers to use Kafka to track their position (offset) in each partition
 public class CommitOffsetAfterPoolConsumer {
 
